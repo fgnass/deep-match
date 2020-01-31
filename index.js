@@ -1,4 +1,6 @@
-module.exports = function deepMatch(obj, example) {
+module.exports = function deepMatch(obj, example, opts) {
+  var arrayOrderMatters = (opts && opts.arrayOrderMatters) || false;
+
   // If the example is a function, execute it
   if (typeof example === 'function') return example(obj);
 
@@ -19,15 +21,33 @@ module.exports = function deepMatch(obj, example) {
 
   // Arrays match if all items in the example match.
   if (example instanceof Array) {
-    return example.every(function (item) {
-      return obj instanceof Array && obj.some(function (o) {
-        return deepMatch(o, item);
+    if (arrayOrderMatters) {
+      // Array should be compared in strict order
+      for (var i = 0; i < example.length; i++) {
+        var exampleItem = example[i];
+        var objItem = obj[i];
+        // this lets you skip validation for particular array items eg: [ , ,'validate']
+        if (exampleItem === undefined) {
+          continue;
+        }
+        if (!deepMatch(objItem, exampleItem, opts)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    if (!arrayOrderMatters) {
+      return example.every(function (item) {
+        return obj instanceof Array && obj.some(function (o) {
+          return deepMatch(o, item, opts);
+        });
       });
-    });
+    }
   }
 
   // Objects match if all properties in the example match.
   return Object.keys(example).every(function (prop) {
-    return deepMatch(obj[prop], example[prop]);
+    return deepMatch(obj[prop], example[prop], opts);
   });
 };

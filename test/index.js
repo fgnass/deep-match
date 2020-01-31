@@ -61,19 +61,19 @@ describe('deep-match', () => {
 
   it('should handle undefined and null values', () => {
     expect(match(undefined, ''), 'to be false');
-    expect(match(undefined, {}), 'to be false');
+    expect(match(undefined, { }), 'to be false');
     expect(match(undefined, []), 'to be false');
     expect(match(undefined, /undefined/), 'to be false');
     expect(match(null, ''), 'to be false');
-    expect(match(null, {}), 'to be false');
+    expect(match(null, { }), 'to be false');
     expect(match(null, []), 'to be false');
     expect(match(null, /null/), 'to be false');
     expect(match('', undefined), 'to be false');
-    expect(match({}, undefined), 'to be false');
+    expect(match({ }, undefined), 'to be false');
     expect(match([], undefined), 'to be false');
     expect(match(/u/, undefined), 'to be false');
     expect(match('', null), 'to be false');
-    expect(match({}, null), 'to be false');
+    expect(match({ }, null), 'to be false');
     expect(match([], null), 'to be false');
     expect(match(/u/, null), 'to be false');
   });
@@ -97,5 +97,72 @@ describe('deep-match', () => {
     expect(match([2, 3], [isOne]), 'to be false');
     expect(match([1, 2], [isOne]), 'to be true');
     expect(match([2, 3], [isOne]), 'to be false');
+  });
+});
+
+describe('deep-match arrayOrderMatters', () => {
+  // default behavior should be the same as using { arrayOrderMatters: false }
+
+  it('should match basic array', () => {
+    var source = [1, 2];
+    var matcher = [1, 2];
+    expect(match(source, matcher, { arrayOrderMatters: true }), 'to be true');
+    expect(match(source, matcher, { arrayOrderMatters: false }), 'to be true');
+    expect(match(source, matcher), 'to be true');
+
+    source = [1, 2];
+    matcher = [2, 1];
+    expect(match(source, matcher, { arrayOrderMatters: true }), 'to be false');
+    expect(match(source, matcher, { arrayOrderMatters: false }), 'to be true');
+    expect(match(source, matcher), 'to be true');
+  });
+
+  it('should skip matching undefined items', () => {
+    var source = [];
+    var matcher = [];
+    expect(match(source, matcher, { arrayOrderMatters: true }), 'to be true');
+    expect(match(source, matcher, { arrayOrderMatters: false }), 'to be true');
+    expect(match(source, matcher), 'to be true');
+
+    source = [1, 2, 3, 4, 5];
+    matcher = [undefined, 2, undefined, 4];
+    expect(match(source, matcher, { arrayOrderMatters: true }), 'to be true');
+    expect(match(source, matcher, { arrayOrderMatters: false }), 'to be false');
+    expect(match(source, matcher), 'to be false');
+
+    source = [1, 2, 3, 4, 5];
+    matcher = [undefined, 2, 4];
+    expect(match(source, matcher, { arrayOrderMatters: true }), 'to be false');
+    expect(match(source, matcher, { arrayOrderMatters: false }), 'to be false');
+    expect(match(source, matcher), 'to be false');
+  });
+
+  it('should match nested arrays', () => {
+    var source = { v1: 'val', a1: [{ i1: [] }, { i2: [1, 2, [31, 32, 33], 4, 5] }] };
+    var matcher = { v1: 'val', a1: [{ i2: [1] }] };
+    expect(match(source, matcher, { arrayOrderMatters: true }), 'to be false');
+    expect(match(source, matcher, { arrayOrderMatters: false }), 'to be true');
+    expect(match(source, matcher), 'to be true');
+
+    source = { v1: 'val', a1: [{ i1: [] }, { i2: [1, 2, [31, 32, 33], 4, 5] }] };
+    matcher = {
+      v1: 'val',
+      a1: [{ i1: [] }, { i2: [1, undefined, [undefined, 32, 33], undefined, 5] }],
+    };
+    expect(match(source, matcher, { arrayOrderMatters: true }), 'to be true');
+    expect(match(source, matcher, { arrayOrderMatters: false }), 'to be false');
+    expect(match(source, matcher), 'to be false');
+
+    source = { v1: 'val', a1: [{ i1: [] }, { i2: [1, 2, [31, 32, 33], 4, 5] }] };
+    matcher = { v1: 'val', a1: [{ i1: [] }, { i2: [1, undefined, [32, 33], undefined, 5] }] };
+    expect(match(source, matcher, { arrayOrderMatters: true }), 'to be false');
+    expect(match(source, matcher, { arrayOrderMatters: false }), 'to be false');
+    expect(match(source, matcher), 'to be false');
+
+    source = { v1: 'val', a1: [{ i1: [] }, { i2: [1, 2, [31, 32, 33], 4, 5] }] };
+    matcher = { v1: 'val', a1: [{ i1: [] }, { i2: [1, 2, [31, 32, 33], 4, 5] }] };
+    expect(match(source, matcher, { arrayOrderMatters: true }), 'to be true');
+    expect(match(source, matcher, { arrayOrderMatters: false }), 'to be true');
+    expect(match(source, matcher), 'to be true');
   });
 });
